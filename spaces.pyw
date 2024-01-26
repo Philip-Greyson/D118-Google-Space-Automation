@@ -2,6 +2,17 @@
 
 https://github.com/Philip-Greyson/D118-Google-Space-Automation
 
+First finds all the members of a specified Gmail group, storing their emails in a list.
+Then goes through the predefined list of Chat spaces and gets their member lists.
+Any currently suspended account is removed from the space, and any emails in the Gmail group that are not already a member of the space are added.
+
+See the following API references and guides that are used in this project:
+https://googleapis.github.io/google-api-python-client/docs/dyn/chat_v1.spaces.html
+https://googleapis.github.io/google-api-python-client/docs/dyn/chat_v1.spaces.members.html
+https://googleapis.github.io/google-api-python-client/docs/dyn/admin_directory_v1.users.html
+https://developers.google.com/chat/api/guides/v1/members/create
+https://developers.google.com/chat/api/guides/v1/members/delete
+https://developers.google.com/admin-sdk/directory/reference/rest/v1/members/list
 """
 
 # importing module
