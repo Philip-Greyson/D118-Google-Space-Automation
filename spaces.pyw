@@ -44,25 +44,50 @@ directory = build('admin', 'directory_v1', credentials=creds)
 
 if __name__ == '__main__':  # main file execution
     with open('spaces_log.txt', 'w', encoding='utf-8') as log:  # open logging file
-        print(EMAIL_GROUP)
+        # print(EMAIL_GROUP)  # debug
         startTime = datetime.now()
         startTime = startTime.strftime('%H:%M:%S')
         print(f'INFO: Execution started at {startTime}')
         print(f'INFO: Execution started at {startTime}', file=log)
-        groups = chat.spaces().list(filter='spaceType = "SPACE"').execute()
-        groups = groups.get('spaces', [])  # get the values of spaces from the result
-        for group in groups:
-            # print(group)
-            print(str(group.get('displayName')) + ": " + str(group.get('name')))
+        # find all the groups we care about
+        # groups = chat.spaces().list(filter='spaceType = "SPACE"').execute()
+        # groups = groups.get('spaces', [])  # get the values of spaces from the result
+        # for group in groups:
+        #     # print(group)
+        #     print(str(group.get('displayName')) + ": " + str(group.get('name')))
+        emailGroupMembers = []  # empty list that will contain the emails in our email group
+        results = directory.members().list(groupKey=EMAIL_GROUP).execute().get('members', [])
+        for result in results:
+            emailGroupMembers.append(result.get('email', []))  # add the email of the group member to our list
+        print(f'INFO: Current members of {EMAIL_GROUP}: {emailGroupMembers}')
+        print(f'INFO: Current members of {EMAIL_GROUP}: {emailGroupMembers}', file=log)
 
         # check the members of each group initially
-        members = chat.spaces().members().list(parent = SPACE_IDS[0]).execute()
-        members = members.get('memberships', [])  # get the value of memberships key from the result dictionary
-        for member in members:
-            name = member.get('member', []).get('name', [])
-            print(name)
-            userKey = name.split('/')[1]  # split the name by the slash, which breaks into users and the string of numbers, so we only want the numbers
-            account = directory.users().get(userKey=userKey).execute()
-            print(account.get('primaryEmail', []))
+        for spaceID in SPACE_IDS:
+            spaceName = chat.spaces().get(name=spaceID).execute().get('displayName')
+            memberList = []  # create a blank list of members for each space
+            members = chat.spaces().members().list(parent = spaceID, filter='member.type="HUMAN"').execute().get('memberships', [])  # use the chat API to get the human-only member list for the current space ID, then get just the memberships value from the dict result
+            # members = members.get('memberships', [])  # get the value of memberships key from the result dictionary
+            for member in members:  # process each member
+                print(member)  # debug
+                name = member.get('member', []).get('name', [])  # get their "name", which is in the format users/xxxxxxxxxxxxxxx, so we will want to convert it to an email for better readability, though we could go the other way around too
+                # print(name)  # debug
+                userKey = name.split('/')[1]  # split the name by the slash, which breaks into users and the string of numbers, so we only want the numbers which is the user key
+                user = directory.users().get(userKey=userKey).execute()  # do a query using the directory API to find the user account based on the user key
+                userEmail = user.get('primaryEmail', [])  # get just the primaryEmail field from the dict
+                if user.get('suspended') == True:  # get whether they are suspended, if they are we will remove them from the group
+                    print(f'ACTION: {userEmail} is currently a member of "{spaceName}" while suspended, they will be removed from the space')
+                    print(f'ACTION: {userEmail} is currently a member of "{spaceName}" while suspended, they will be removed from the space', file=log)
+                    chat.spaces().members().delete(name=member.get('name', [])).execute()  # gets the full space + member name from the member dict, then calls the delete member function from the chat API with that info
+                memberList.append(userEmail)
+            # print(f'Current members of {spaceName}: {memberList}')  # debug
+            for email in emailGroupMembers:
+                if email not in memberList:  # if an email found in the target email group is not found in the space, we need to add it
+                    print(f'ACTION: {email} is a member of {EMAIL_GROUP} but is not currently in {spaceName}, they will be added')
+                    print(f'ACTION: {email} is a member of {EMAIL_GROUP} but is not currently in {spaceName}, they will be added', file=log)
+                    chat.spaces().members().create(parent=spaceID,body={'member': {'name': f'users/{email}', 'type':'HUMAN'}}).execute()  # call the create membership function from the chat API with the user email as the user argument
 
-            # print(member)
+        endTime = datetime.now()
+        endTime = endTime.strftime('%H:%M:%S')
+        print(f'INFO: Execution ended at {endTime}')
+        print(f'INFO: Execution ended at {endTime}', file=log)
