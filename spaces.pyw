@@ -69,6 +69,7 @@ if __name__ == '__main__':  # main file execution
         print(f'INFO: Execution started at {startTime}')
         print(f'INFO: Execution started at {startTime}', file=log)
 
+        # get the list of emails that are a part of the email group, add them to emailGroupMembers for later use
         try:
             emailGroupMembers = []  # empty list that will contain the emails in our email group
             results = directory.members().list(groupKey=EMAIL_GROUP).execute().get('members', [])  # call the directory API to get a list of the members of the email group, then just get the member item from the returned dict
@@ -80,7 +81,7 @@ if __name__ == '__main__':  # main file execution
             print(f'ERROR getting the members of the email group: {er}')
             print(f'ERROR getting the members of the email group: {er}', file=log)
 
-        # check the members of each group initially
+        # go through each space and remove suspended accounts, add any group members not already there
         for spaceID in SPACE_IDS:
             try:
                 spaceName = chat.spaces().get(name=spaceID).execute().get('displayName')
