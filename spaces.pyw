@@ -26,7 +26,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 EMAIL_GROUP = os.environ.get('TECH_GROUP')  # the email of the group whose members will be added to the spaces
-SPACE_IDS =['spaces/AAAAPhybgs0','spaces/AAAAI275-Ps','spaces/AAAAQfD6OvU','spaces/AAAAplRUjYU','spaces/AAAADktlgBE','spaces/AAAAkh4SdI0','spaces/AAAA0adnGm0','spaces/AAAAMm3BpU8','spaces/AAAAW0b9Nwo','spaces/AAAAWK20uIk','spaces/AAAAy0tsnzQ', 'spaces/AAAA4Vu28Fs','spaces/AAAAx2y6BrI','spaces/AAAAVibi7q0','spaces/AAAAs8JCdL0','spaces/AAAACRnDL10','spaces/AAAAO_v44Ng','spaces/AAAAuu0GhY0','spaces/AAAA7vuf72Y','spaces/AAAA01Rwg50',]
+SPACE_IDS =['spaces/AAAAPhybgs0','spaces/AAAAI275-Ps','spaces/AAAAQfD6OvU','spaces/AAAAplRUjYU','spaces/AAAADktlgBE','spaces/AAAAkh4SdI0','spaces/AAAA0adnGm0','spaces/AAAAMm3BpU8','spaces/AAAAW0b9Nwo','spaces/AAAAWK20uIk','spaces/AAAAy0tsnzQ', 'spaces/AAAA4Vu28Fs','spaces/AAAAx2y6BrI','spaces/AAAAVibi7q0','spaces/AAAAs8JCdL0','spaces/AAAACRnDL10','spaces/AAAAO_v44Ng','spaces/AAAAuu0GhY0','spaces/AAAA7vuf72Y']
 REMOVE_SUSPENDED = True
 
 # Google API Scopes that will be used. If modifying these scopes, delete the file token.json.
