@@ -24,8 +24,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 EMAIL_GROUP = os.environ.get('TECH_GROUP')  # the email of the group whose members will be added to the spaces
+IGNORED_ERROR_GROUP = os.environ.get('D118_IT_EMAIL')  # email of a group whose members will not raise errors if they cannot be added/removed. Useful for some district staff who do not want to be added to spaces and blocked them
 SPACE_IDS =['spaces/AAAAPhybgs0','spaces/AAAAI275-Ps','spaces/AAAAQfD6OvU','spaces/AAAAplRUjYU','spaces/AAAADktlgBE','spaces/AAAAkh4SdI0','spaces/AAAA0adnGm0','spaces/AAAAMm3BpU8','spaces/AAAAW0b9Nwo','spaces/AAAAWK20uIk','spaces/AAAAy0tsnzQ', 'spaces/AAAA4Vu28Fs','spaces/AAAAx2y6BrI','spaces/AAAAVibi7q0','spaces/AAAAs8JCdL0','spaces/AAAACRnDL10','spaces/AAAAO_v44Ng','spaces/AAAAuu0GhY0','spaces/AAAA7vuf72Y']
 REMOVE_SUSPENDED = True
 
@@ -78,8 +80,20 @@ if __name__ == '__main__':  # main file execution
             print(f'DBUG: Current members of {EMAIL_GROUP}: {emailGroupMembers}')
             print(f'DBUG: Current members of {EMAIL_GROUP}: {emailGroupMembers}', file=log)
         except Exception as er:
-            print(f'ERROR getting the members of the email group: {er}')
-            print(f'ERROR getting the members of the email group: {er}', file=log)
+            print(f'ERROR getting the members of the email group {EMAIL_GROUP}: {er}')
+            print(f'ERROR getting the members of the email group {EMAIL_GROUP}: {er}', file=log)
+
+        # get the list of emails for the ignored error group
+        try:
+            ignoredErrorMembers = []  # empty list that will contain the emails in our email group
+            results = directory.members().list(groupKey=IGNORED_ERROR_GROUP).execute().get('members', [])  # call the directory API to get a list of the members of the email group, then just get the member item from the returned dict
+            for result in results:  # go through each user result from the group
+                ignoredErrorMembers.append(result.get('email', []))  # add the email of the group member to our list
+            print(f'DBUG: Current members of {IGNORED_ERROR_GROUP}: {ignoredErrorMembers}')
+            print(f'DBUG: Current members of {IGNORED_ERROR_GROUP}: {ignoredErrorMembers}', file=log)
+        except Exception as er:
+            print(f'ERROR getting the members of the email group {IGNORED_ERROR_GROUP}: {er}')
+            print(f'ERROR getting the members of the email group {IGNORED_ERROR_GROUP}: {er}', file=log)
 
         # go through each space and remove suspended accounts, add any group members not already there
         for spaceID in SPACE_IDS:
@@ -102,6 +116,12 @@ if __name__ == '__main__':  # main file execution
                                 print(f'ACTION: {userEmail} is currently a member of "{spaceName}" while suspended, they will be removed from the space')
                                 print(f'ACTION: {userEmail} is currently a member of "{spaceName}" while suspended, they will be removed from the space', file=log)
                                 chat.spaces().members().delete(name=member.get('name', [])).execute()  # gets the full space + member name from the member dict, then calls the delete member function from the chat API with that info
+                            except HttpError as er:   # catch Google API http errors, get the specific message and reason from them for better logging
+                                status = er.status_code
+                                details = er.error_details
+                                if status != 403 or email not in ignoredErrorMembers:  # if its a 403 and they are in the ignored group, dont print the error, otherwise do
+                                    print(f'ERROR {status} from Google API while removing {userEmail} from space "{spaceName}": {details}')
+                                    print(f'ERROR {status} from Google API while removing {userEmail} from space "{spaceName}": {details}', file=log)
                             except Exception as er:
                                 print(f'ERROR while removing {userEmail} from space "{spaceName}": {er}')
                                 print(f'ERROR while removing {userEmail} from space "{spaceName}": {er}', file=log)
@@ -117,6 +137,12 @@ if __name__ == '__main__':  # main file execution
                             print(f'ACTION: {email} is a member of {EMAIL_GROUP} but is not currently in "{spaceName}", they will be added')
                             print(f'ACTION: {email} is a member of {EMAIL_GROUP} but is not currently in "{spaceName}", they will be added', file=log)
                             chat.spaces().members().create(parent=spaceID,body={'member': {'name': f'users/{email}', 'type':'HUMAN'}}).execute()  # call the create membership function from the chat API with the user email as the user argument
+                        except HttpError as er:   # catch Google API http errors, get the specific message and reason from them for better logging
+                            status = er.status_code
+                            details = er.error_details
+                            if status != 403 or email not in ignoredErrorMembers:  # if its a 403 and they are in the ignored group, dont print the error, otherwise do
+                                print(f'ERROR {status} from Google API while trying to add {email} to space "{spaceName}": {details}')
+                                print(f'ERROR {status} from Google API while trying to add {email} to space "{spaceName}": {details}', file=log)
                         except Exception as er:
                             print(f'ERROR while trying to add {email} to space "{spaceName}": {er}')
                             print(f'ERROR while trying to add {email} to space "{spaceName}": {er}', file=log)
